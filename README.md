@@ -1,2 +1,2 @@
-# batsmanAssignment1
+# BatsynAssignment1
 first assignment!!
