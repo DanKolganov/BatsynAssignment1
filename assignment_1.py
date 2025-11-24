@@ -268,6 +268,139 @@ def min_degree_first_clique_2(graph: dict) -> list:
     return cliques
 
 
+def basic_greedy_coloring(graph: dict) -> dict:
+    # Инициализация словаря раскраски (вершина: цвет)
+    coloring = {}
+
+    # Задаем порядок вершин (произвольный порядок ключей)
+    vertices = list(graph.keys())
+
+    # Итерация по всем вершинам в заданном порядке
+    for vertex in vertices:
+        # Множество цветов, уже используемых раскрашенными соседями
+        forbidden_colors = set()
+
+        # 1. Сбор запрещенных цветов
+        for neighbour in graph[vertex]:
+            # Проверяем, раскрашен ли сосед. Если да, добавляем его цвет в запрещенные.
+            if neighbour in coloring:
+                forbidden_colors.add(coloring[neighbour])
+
+        # 2. Поиск наименьшего доступного цвета (Greedy Step)
+        
+        # Начинаем поиск с цвета 1
+        current_color = 1
+        
+        while True:
+            # Если текущий цвет не используется ни одним соседом, он доступен.
+            if current_color not in forbidden_colors:
+                # Назначаем этот цвет вершине
+                coloring[vertex] = current_color
+                break  # Выходим из цикла поиска цвета
+            
+            # Если цвет запрещен, пробуем следующий цвет
+            current_color += 1
+
+    return coloring
+            
+
+def basic_greedy_coloring_with_LF(graph: dict) -> dict:
+    # Инициализация словаря раскраски (вершина: цвет)
+    coloring = {}
+
+    # Задаем порядок вершин (произвольный порядок ключей)
+    vertices = list(graph.keys())
+
+    vertices = sorted(vertices, key=lambda v: len(graph[v]), reverse=True)
+
+    # Итерация по всем вершинам в заданном порядке
+    for vertex in vertices:
+        # Множество цветов, уже используемых раскрашенными соседями
+        forbidden_colors = set()
+
+        # 1. Сбор запрещенных цветов
+        for neighbour in graph[vertex]:
+            # Проверяем, раскрашен ли сосед. Если да, добавляем его цвет в запрещенные.
+            if neighbour in coloring:
+                forbidden_colors.add(coloring[neighbour])
+
+        # 2. Поиск наименьшего доступного цвета (Greedy Step)
+        
+        # Начинаем поиск с цвета 1
+        current_color = 1
+        
+        while True:
+            # Если текущий цвет не используется ни одним соседом, он доступен.
+            if current_color not in forbidden_colors:
+                # Назначаем этот цвет вершине
+                coloring[vertex] = current_color
+                break  # Выходим из цикла поиска цвета
+            
+            # Если цвет запрещен, пробуем следующий цвет
+            current_color += 1
+
+    return coloring
+
+
+def dsatur_heuristic(graph: dict) -> dict:
+    # Инициализация
+    coloring = {}
+    vertices = list(graph.keys())
+    
+    # Степень каждой вершины (для разрешения коллизий DSAT)
+    degrees = {v: len(graph[v]) for v in vertices}
+
+    # Итеративный процесс: пока не раскрашены все вершины
+    while len(coloring) < len(vertices):
+        
+        # 1. Поиск вершины с максимальным DSAT
+        
+        max_dsat = -1
+        best_vertex = None
+
+        for vertex in vertices:
+            # Ищем только среди непокрашенных вершин
+            if vertex in coloring:
+                continue
+
+            # a) Вычисление DSAT (Степени Насыщения)
+            used_colors_set = set()
+            for neighbour in graph[vertex]:
+                if neighbour in coloring:
+                    used_colors_set.add(coloring[neighbour])
+            
+            current_dsat = len(used_colors_set)
+            
+            # b) Сравнение и выбор: ищем максимальный DSAT
+            if current_dsat > max_dsat:
+                max_dsat = current_dsat
+                best_vertex = vertex
+            
+            # c) Разрешение коллизий: если DSAT равен, выбираем ту, у которой больше степень
+            elif current_dsat == max_dsat:
+                # На первой итерации best_vertex может быть None
+                if best_vertex is None or degrees[vertex] > degrees[best_vertex]:
+                    best_vertex = vertex
+
+        # 2. Жадная раскраска выбранной вершины (best_vertex)
+
+        # Собираем запрещенные цвета для выбранной вершины
+        forbidden_colors = set()
+        for neighbour in graph[best_vertex]:
+            if neighbour in coloring:
+                forbidden_colors.add(coloring[neighbour])
+
+        # Находим наименьший доступный цвет (Greedy Step)
+        current_color = 1
+        while current_color in forbidden_colors:
+            current_color += 1
+
+        # Назначаем цвет и обновляем раскраску
+        coloring[best_vertex] = current_color
+        
+    return coloring
+
+
 
 if __name__ == '__main__':
 
@@ -282,33 +415,35 @@ if __name__ == '__main__':
                 'le450_15b.col',
                 'queen11_11.col']
     
-    reses = []
+
     
-    results = {'name' : reses}
+    results = {}
 
     for name in graphs:
+
+        reses = []
+
         ext_graph = {}    
 
         start_t = time.time()
 
         graph, V, E = read_gragh_file(name)
-        
-        ext_graph = createExtGraph(graph, V)
 
-        colors = largest_first_cliques(ext_graph)[0]
+        colors = dsatur_heuristic(graph)
 
-        count_of_colors = len(colors)
+        print("lenght = ", len(set(colors.values())))
+
+        count_of_colors = len(set(colors.values()))
 
         end_t = time.time()
 
         execute_time = end_t - start_t
 
-        reses.append(name)
+        # reses.append(name)
         reses.append(execute_time)
         reses.append(count_of_colors)
 
         results[name] = reses
-
     
-    print(reses)
+    print(results)
     
